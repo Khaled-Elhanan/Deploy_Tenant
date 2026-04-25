@@ -145,9 +145,6 @@ public class ApplicationDbSeeder
         var tenant = _tenantContext.MultiTenantContext?.TenantInfo;
         if (tenant == null) return;
 
-        if (tenant.TenantType == TenancyConstants.TenantTypes.Platform)
-            return;
-
         var tenantId = tenant.Identifier!;
         var email = tenant.OwnerEmail ?? $"{tenantId}@store.local";
         var username = Sanitize(BuildTenantAwareName(tenantId, email));

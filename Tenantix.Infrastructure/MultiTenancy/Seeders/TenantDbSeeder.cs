@@ -34,11 +34,7 @@ namespace Tenantix.Infrastructure.MultiTenancy.Seeders
 
             foreach (var tenant in tenants)
             {
-                if (tenant.TenantType == TenancyConstants.TenantTypes.Store)
-                {
-                    await InitializeApplicationDbForTenantAsync(tenant, cancellationToken);
-                }
-
+                await InitializeApplicationDbForTenantAsync(tenant, cancellationToken);
             }
         }
 
