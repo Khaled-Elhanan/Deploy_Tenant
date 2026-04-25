@@ -175,7 +175,7 @@ try
             // TEMPORARY FIX: Drop all tables explicitly 
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<Tenantix.Infrastructure.MultiTenancy.Persistence.TenantDbContext>();
-            await db.Database.ExecuteSqlRawAsync("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
+            await db.Database.ExecuteSqlRawAsync("DROP SCHEMA public CASCADE; DROP SCHEMA IF EXISTS \"MultiTenancy\" CASCADE; DROP SCHEMA IF EXISTS \"Identity\" CASCADE; DROP SCHEMA IF EXISTS \"Core\" CASCADE; CREATE SCHEMA public;");
 
             await app.Services.AddDatabaseInitializerAsync();
         }
