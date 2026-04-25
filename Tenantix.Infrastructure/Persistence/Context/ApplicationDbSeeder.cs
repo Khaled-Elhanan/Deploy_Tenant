@@ -2,6 +2,7 @@ using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using Tenantix.Application.Common.Constants.Authorization;
 using Tenantix.Application.Common.Constants.Authorization.Common;
 using Tenantix.Application.Common.Constants.Authorization.Store;
 using Tenantix.Application.Common.Constants.MultiTenancy;
@@ -89,7 +90,10 @@ public class ApplicationDbSeeder
             ?? throw new InvalidOperationException("Tenant identifier is missing.");
 
         if (tenant.TenantType == TenancyConstants.TenantTypes.Platform)
+        {
+            await SeedPlatformRoleClaimsAsync(tenantId, "Admin", PlatformPermissions.Owner, cancellationToken);
             return;
+        }
 
         await SeedStoreRoleClaimsAsync(tenantId, "Admin", StorePermissions.Admin, cancellationToken);
         await SeedStoreRoleClaimsAsync(tenantId, "Customer", StorePermissions.Customer, cancellationToken);
@@ -99,6 +103,42 @@ public class ApplicationDbSeeder
         string tenantId,
         string roleBaseName,
         IReadOnlyList<StorePermissions.StorePermission> permissions,
+        CancellationToken cancellationToken)
+    {
+        var roleName = BuildTenantAwareName(tenantId, roleBaseName);
+        var role = await _roleManager.FindByNameAsync(roleName);
+        if (role is null) return;
+
+        var existingValues = await _context.RoleClaims
+            .AsNoTracking()
+            .Where(rc => rc.RoleId == role.Id && rc.ClaimType == ClaimConstants.Permissions)
+            .Select(rc => rc.ClaimValue)
+            .ToListAsync(cancellationToken);
+
+        foreach (var perm in permissions)
+        {
+            var permName = perm.Name;
+
+            if (existingValues.Contains(permName))
+                continue;
+
+            _context.RoleClaims.Add(new ApplicationRoleClaim
+            {
+                RoleId = role.Id,
+                RoleName = role.Name!,
+                ClaimType = ClaimConstants.Permissions,
+                ClaimValue = permName,
+                Description = perm.Description
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SeedPlatformRoleClaimsAsync(
+        string tenantId,
+        string roleBaseName,
+        IReadOnlyList<PlatformPermissions.PlatformPermission> permissions,
         CancellationToken cancellationToken)
     {
         var roleName = BuildTenantAwareName(tenantId, roleBaseName);
