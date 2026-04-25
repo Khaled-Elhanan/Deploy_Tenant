@@ -43,15 +43,6 @@ public class ApplicationDbSeeder
         {
             await _context.Database.MigrateAsync(cancellationToken);
         }
-        else
-        {
-            var applied = await _context.Database.GetAppliedMigrationsAsync(cancellationToken);
-            if (!applied.Any())
-            {
-                // No migrations at all — create schema directly (first deploy)
-                await _context.Database.EnsureCreatedAsync(cancellationToken);
-            }
-        }
     }
 
     private async Task InitializeRolesAsync(CancellationToken cancellationToken)
