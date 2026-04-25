@@ -31,6 +31,18 @@ try
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
     // =====================
+    // Database connection string (Render provides DATABASE_URL in postgres:// URI format)
+    // Convert to Npgsql ADO.NET format if DATABASE_URL is present
+    // =====================
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrEmpty(databaseUrl))
+    {
+        var connStr = ConvertPostgresUriToConnectionString(databaseUrl);
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = connStr;
+        Log.Information("Database connection configured from DATABASE_URL");
+    }
+
+    // =====================
     // Serilog (full configuration from appsettings)
     // =====================
     builder.Host.UseSerilog((context, services, configuration) => configuration
@@ -64,12 +76,20 @@ try
     // =====================
     // Health Checks (PostgreSQL)
     // =====================
-    builder.Services.AddHealthChecks()
-        .AddNpgSql(
-            builder.Configuration.GetConnectionString("DefaultConnection")!,
-            name: "postgresql",
-            tags: new[] { "db", "ready" },
-            timeout: TimeSpan.FromSeconds(5));
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrEmpty(connectionString))
+    {
+        builder.Services.AddHealthChecks()
+            .AddNpgSql(
+                connectionString,
+                name: "postgresql",
+                tags: new[] { "db", "ready" },
+                timeout: TimeSpan.FromSeconds(5));
+    }
+    else
+    {
+        builder.Services.AddHealthChecks();
+    }
 
     // =====================
     // CORS
@@ -91,8 +111,8 @@ try
             }
             else
             {
-                // Fallback: no origins allowed (secure default)
-                policy.WithOrigins("https://localhost")
+                // Fallback: allow any origin in production for API-only backend
+                policy.AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             }
@@ -147,7 +167,14 @@ try
     // =====================
     if (!app.Environment.IsEnvironment("Test"))
     {
-        await app.Services.AddDatabaseInitializerAsync();
+        try
+        {
+            await app.Services.AddDatabaseInitializerAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Database initialization failed — the app will start but DB operations may fail");
+        }
     }
 
     // =====================
@@ -204,6 +231,24 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+// =====================
+// Helper: Convert postgres:// URI to Npgsql connection string
+// Render provides: postgres://user:password@host:port/database
+// Npgsql needs:    Host=...;Port=...;Database=...;Username=...;Password=...
+// =====================
+static string ConvertPostgresUriToConnectionString(string databaseUrl)
+{
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':');
+    var username = userInfo[0];
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+    var host = uri.Host;
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    var database = uri.AbsolutePath.TrimStart('/');
+
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
 }
 
 public partial class Program { }

@@ -1,4 +1,4 @@
-﻿using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -44,7 +44,21 @@ namespace Tenantix.Infrastructure.MultiTenancy.Seeders
 
         private async Task InitializeTenantDbAsync(CancellationToken cancellationToken)
         {
-            await _tenantDbContext.Database.MigrateAsync(cancellationToken);
+            // Try migrations first; if none exist, create schema directly
+            var pending = await _tenantDbContext.Database.GetPendingMigrationsAsync(cancellationToken);
+            if (pending.Any())
+            {
+                await _tenantDbContext.Database.MigrateAsync(cancellationToken);
+            }
+            else
+            {
+                var applied = await _tenantDbContext.Database.GetAppliedMigrationsAsync(cancellationToken);
+                if (!applied.Any())
+                {
+                    // No migrations at all — create schema directly (first deploy)
+                    await _tenantDbContext.Database.EnsureCreatedAsync(cancellationToken);
+                }
+            }
 
             var rootTenant = await _tenantDbContext.TenantInfo.FindAsync(
                 new object[] { TenancyConstants.Root.Id },

@@ -1,4 +1,4 @@
-﻿using Finbuckle.MultiTenant.Abstractions;
+using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
@@ -40,7 +40,18 @@ public class ApplicationDbSeeder
     {
         var pending = await _context.Database.GetPendingMigrationsAsync(cancellationToken);
         if (pending.Any())
+        {
             await _context.Database.MigrateAsync(cancellationToken);
+        }
+        else
+        {
+            var applied = await _context.Database.GetAppliedMigrationsAsync(cancellationToken);
+            if (!applied.Any())
+            {
+                // No migrations at all — create schema directly (first deploy)
+                await _context.Database.EnsureCreatedAsync(cancellationToken);
+            }
+        }
     }
 
     private async Task InitializeRolesAsync(CancellationToken cancellationToken)
