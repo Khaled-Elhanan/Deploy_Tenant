@@ -25,7 +25,7 @@ services:
       - key: ConnectionStrings__DefaultConnection
         fromDatabase:
           name: tenantix-db
-          property: connectionURI
+          property: connectionString
       - key: JwtSettings__Secret
         generateValue: true
       - key: JwtSettings__TokenExpiryTimeInMinutes
