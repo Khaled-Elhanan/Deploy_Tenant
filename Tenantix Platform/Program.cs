@@ -8,6 +8,7 @@ using Serilog.Events;
 using Tenantix.Application;
 using Tenantix.Infrastructure;
 using Tenantix_WebApi.Middlewares;
+using Microsoft.EntityFrameworkCore;
 
 // =====================
 // Bootstrap Serilog (early init — catches startup errors)
@@ -173,7 +174,7 @@ try
         {
             // TEMPORARY FIX: Drop all tables explicitly 
             using var scope = app.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<TenantDbContext>();
+            var db = scope.ServiceProvider.GetRequiredService<Tenantix.Infrastructure.MultiTenancy.Persistence.TenantDbContext>();
             await db.Database.ExecuteSqlRawAsync("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
 
             await app.Services.AddDatabaseInitializerAsync();
