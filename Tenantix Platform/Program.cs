@@ -171,6 +171,11 @@ try
     {
         try
         {
+            // TEMPORARY FIX: Wipe dirty DB state so migrations can run cleanly
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<TenantDbContext>();
+            await db.Database.EnsureDeletedAsync();
+
             await app.Services.AddDatabaseInitializerAsync();
         }
         catch (Exception ex)
