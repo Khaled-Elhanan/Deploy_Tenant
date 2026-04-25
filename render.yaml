@@ -1,0 +1,42 @@
+# ==============================================================================
+# Tenantix Platform - Render Blueprint (Infrastructure as Code)
+# ==============================================================================
+# This file tells Render how to deploy the project automatically.
+# Push this to your repo, then go to https://render.com/deploy and select it.
+#
+# What gets created:
+#   - Web Service (Docker) for the API
+#   - PostgreSQL database (free tier)
+# ==============================================================================
+
+services:
+  # --- Tenantix API ---
+  - type: web
+    name: tenantix-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: oregon
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: tenantix-db
+          property: connectionURI
+      - key: JwtSettings__Secret
+        generateValue: true
+      - key: JwtSettings__TokenExpiryTimeInMinutes
+        value: "30"
+      - key: JwtSettings__RefreshTokenExpiryTimeInDays
+        value: "7"
+
+databases:
+  # --- PostgreSQL Database ---
+  - name: tenantix-db
+    plan: free
+    region: oregon
+    databaseName: tenantix_platform
+    user: tenantix

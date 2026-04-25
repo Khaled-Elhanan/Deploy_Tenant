@@ -1,0 +1,62 @@
+# ==============================================================================
+# Tenantix Platform - Local Production Simulation (PostgreSQL)
+# ==============================================================================
+# Usage:
+#   docker compose up --build        (start everything)
+#   docker compose down -v           (stop and remove volumes)
+#   docker compose logs -f api       (follow API logs)
+# ==============================================================================
+
+services:
+  # --- PostgreSQL ---
+  postgres:
+    image: postgres:16-alpine
+    container_name: tenantix-postgres
+    environment:
+      POSTGRES_DB: tenantix_platform
+      POSTGRES_USER: tenantix
+      POSTGRES_PASSWORD: TenantixDev2026!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenantix -d tenantix_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tenantix-network
+
+  # --- Tenantix API ---
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tenantix-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - PORT=8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tenantix_platform;Username=tenantix;Password=TenantixDev2026!
+      - JwtSettings__Secret=LocalDockerDevSecret256BitKeyForTestingOnly123456!
+      - JwtSettings__TokenExpiryTimeInMinutes=60
+      - JwtSettings__RefreshTokenExpiryTimeInDays=7
+      - CorsSettings__AllowedOrigins__0=http://localhost:3000
+      - CorsSettings__AllowedOrigins__1=http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tenantix-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  tenantix-network:
+    driver: bridge

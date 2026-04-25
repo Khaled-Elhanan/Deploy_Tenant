@@ -1,0 +1,30 @@
+﻿using FluentValidation;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Tenantix.Application.Features.Products.DTOs;
+
+namespace Tenantix.Application.Features.Products.Validations
+{
+    public class CreateTenantRequestValidator : AbstractValidator<CreateProductRequest>
+    {
+        public CreateTenantRequestValidator()
+        {
+            RuleFor(x => x.Name)
+                 .NotEmpty()
+                 .MaximumLength(200);
+
+            RuleFor(x => x.SKU)
+                .NotEmpty()
+                .MaximumLength(100);
+
+            RuleFor(x => x.Price)
+                .GreaterThan(0);
+        }
+
+
+
+    }
+}
