@@ -61,20 +61,12 @@ public class ErrorHandlingMiddleware
                 
                 default:
                     response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                    // In development, show the actual error message
-                    if (_environment.IsDevelopment())
-                    {
-                        responseWrapper.Messages = new List<string> 
-                        { 
-                            ex.Message,
-                            ex.InnerException?.Message ?? string.Empty,
-                            ex.StackTrace ?? string.Empty
-                        }.Where(m => !string.IsNullOrEmpty(m)).ToList();
-                    }
-                    else
-                    {
-                        responseWrapper.Messages = new List<string> { "Something went wrong . Contact Administrator." };
-                    }
+                    responseWrapper.Messages = new List<string> 
+                    { 
+                        ex.Message,
+                        ex.InnerException?.Message ?? string.Empty,
+                        ex.StackTrace ?? string.Empty
+                    }.Where(m => !string.IsNullOrEmpty(m)).ToList();
                     break;
             }
             

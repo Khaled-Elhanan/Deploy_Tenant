@@ -162,6 +162,8 @@ try
 
     var app = builder.Build();
 
+    Exception? startupException = null;
+
     // =====================
     // Initialize databases (skip in Test environment)
     // =====================
@@ -173,6 +175,7 @@ try
         }
         catch (Exception ex)
         {
+            startupException = ex;
             Log.Error(ex, "Database initialization failed — the app will start but DB operations may fail");
         }
     }
@@ -215,6 +218,10 @@ try
         Predicate = _ => false, // Liveness — no dependency checks
         ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
     });
+
+    app.MapGet("/db-status", () => startupException == null 
+        ? Results.Ok("Database initialization successful.") 
+        : Results.Problem(startupException.ToString()));
 
     app.MapHealthChecks("/ready", new HealthCheckOptions
     {
