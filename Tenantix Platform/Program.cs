@@ -171,10 +171,10 @@ try
     {
         try
         {
-            // TEMPORARY FIX: Wipe dirty DB state so migrations can run cleanly
+            // TEMPORARY FIX: Drop all tables explicitly 
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<TenantDbContext>();
-            await db.Database.EnsureDeletedAsync();
+            await db.Database.ExecuteSqlRawAsync("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
 
             await app.Services.AddDatabaseInitializerAsync();
         }
